@@ -1,7 +1,6 @@
 LATEST_NEWS_URL = 'https://api.currentsapi.services/v1/latest-news'
 SEARCH_URL = 'https://api.currentsapi.services/v1/search'
 
-
 AVAILABLE_COUNTRY = ["AS", "AT", "BD", "BR", "CA", "CN", "FI","FR", "DE", "HK", "IN", "ID", "IL", "JP", "PH", "MX", "MY", "NL", "NO", "NZ", "PT",
      "RU", "SA", "SG", "CH", "SK", "TW", "TH", "VIET", "AE", "US", "GB", "VEN", "ZW", "IT", "PSE"]
 
