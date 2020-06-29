@@ -1,6 +1,6 @@
 import requests
 import datetime
-from dateutil import parser
+from dateutil.parser import parser
 from currentsapi.authentication import ApiAuth
 from currentsapi import constants
 
