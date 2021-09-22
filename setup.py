@@ -16,7 +16,7 @@ tests_require = [
 
 setup(
     name='currentsapi',
-    version='0.0.2',
+    version='0.0.4',
     author='Currents Dev',
     author_email='ray@currentsapi.services',
     license='MIT',
@@ -44,5 +44,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
 )

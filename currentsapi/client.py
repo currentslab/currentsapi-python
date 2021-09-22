@@ -27,14 +27,17 @@ class APIException(Exception):
 
 class CurrentsAPI():
 
-    def __init__(self, api_key):
+    def __init__(self, api_key, 
+        domain=constants.DOMAIN, version=constants.VERSION, timeout=30):
         if not isinstance(api_key, str):
             raise ValueError('api_key must be string')
         self.api_key = ApiAuth(api_key)
-    
+        self.latest_endpoint = constants.LATEST_NEWS_URL % (domain, version)
+        self.search_endpoint = constants.SEARCH_URL % (domain, version)
+        self.timeout = timeout
 
     def latest_news(self):
-        r = requests.get(constants.LATEST_NEWS_URL, auth=self.api_key, timeout=30)
+        r = requests.get(self.latest_endpoint, auth=self.api_key, timeout=self.timeout)
         if r.status_code != requests.codes.ok:
             raise APIException(r.json())
         return r.json()
@@ -102,7 +105,9 @@ class CurrentsAPI():
 
         if has_description:
             payload['has_description'] = 'true' if has_description else 'false'
-        r = requests.get(constants.SEARCH_URL, auth=self.api_key, timeout=30, params=payload)
+        r = requests.get(self.search_endpoint, auth=self.api_key, 
+            timeout=self.timeout, 
+            params=payload)
 
         if r.status_code != requests.codes.ok:
             raise APIException(r.json())
