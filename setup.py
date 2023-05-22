@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 install_requires = [
-    'requests==2.21.0',
+    'requests==2.31.0',
     'python-dateutil==2.8.0'
 ]
 
