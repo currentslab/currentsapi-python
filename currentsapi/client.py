@@ -1,115 +1,127 @@
-import requests
 import datetime
+import requests
 from dateutil import parser
-from currentsapi.authentication import ApiAuth
+
 from currentsapi import constants
-
-class APIException(Exception):
-
-    def __init__(self, exception):
-        self.exception = exception
-
-    def get_exception(self):
-        return self.exception
-
-    def get_status(self):
-        if self.exception["status"]:
-            return self.exception["status"]
-
-    def get_code(self):
-        if self.exception["code"]:
-            return self.exception["code"]
-
-    def get_message(self):
-        if self.exception["message"]:
-            return self.exception["message"]
+from currentsapi.authentication import ApiAuth
 
 
-class CurrentsAPI():
+class CurrentsAPIError(Exception):
+    """Raised when the Currents API returns an error response."""
 
-    def __init__(self, api_key, 
-        domain=constants.DOMAIN, version=constants.VERSION, timeout=30):
+    def __init__(self, response):
+        self.response = response
+        super().__init__(str(response))
+
+    @property
+    def status(self):
+        return self.response.get("status")
+
+    @property
+    def code(self):
+        return self.response.get("code")
+
+    @property
+    def message(self):
+        return self.response.get("message")
+
+
+class CurrentsAPI:
+    def __init__(
+        self,
+        api_key,
+        domain=constants.DOMAIN,
+        version=constants.VERSION,
+        timeout=30,
+    ):
         if not isinstance(api_key, str):
-            raise ValueError('api_key must be string')
+            raise ValueError("api_key must be a string")
         self.api_key = ApiAuth(api_key)
         self.latest_endpoint = constants.LATEST_NEWS_URL % (domain, version)
         self.search_endpoint = constants.SEARCH_URL % (domain, version)
+        self.available_languages_endpoint = constants.AVAILABLE_LANGUAGES_URL % (domain, version)
+        self.available_regions_endpoint = constants.AVAILABLE_REGIONS_URL % (domain, version)
+        self.available_category_endpoint = constants.AVAILABLE_CATEGORIES_URL % (domain, version)
         self.timeout = timeout
 
-    def latest_news(self):
-        r = requests.get(self.latest_endpoint, auth=self.api_key, timeout=self.timeout)
+    def _get(self, endpoint, params=None):
+        r = requests.get(
+            endpoint,
+            auth=self.api_key,
+            timeout=self.timeout,
+            params=params or {},
+        )
         if r.status_code != requests.codes.ok:
-            raise APIException(r.json())
+            raise CurrentsAPIError(r.json())
         return r.json()
-    
 
-    def search(self, country=None, language=None, keywords=None, category=None, 
-        page_number=None, limit=None, start_date=None, end_date=None, has_image=None, has_description=None):
-        payload = {}
+    def latest_news(self, language=None):
+        params = {}
+        if language:
+            if not isinstance(language, str):
+                raise ValueError("language must be a string")
+            params["language"] = language
+        return self._get(self.latest_endpoint, params)
+
+    def search(
+        self,
+        language=None,
+        keywords=None,
+        country=None,
+        category=None,
+        start_date=None,
+        end_date=None,
+    ):
+        params = {}
 
         if keywords:
             if not isinstance(keywords, str):
-                raise ValueError('keywords should be string')
-            payload['keywords'] = keywords
-        
+                raise ValueError("keywords must be a string")
+            params["keywords"] = keywords
 
         if country:
             if not isinstance(country, str):
-                raise ValueError('country should be string')
-            payload['country'] = country
+                raise ValueError("country must be a string")
+            params["country"] = country
 
         if language:
             if not isinstance(language, str):
-                raise ValueError('language should be string')
-            payload['language'] = language
+                raise ValueError("language must be a string")
+            params["language"] = language
 
         if category:
-            if not isinstance(category, str) and not isinstance(category, list):
-                raise ValueError('category should be string')
-            if isinstance(category, list):
-                payload['category'] = ','.join(category)
-            else:
-                payload['category'] = category
-
-        if page_number:
-            if not int(page_number) == page_number:
-                raise ValueError('page_number should be integer')
-            payload['page_number'] = page_number
-
-        if limit:
-            if not int(limit) == limit:
-                raise ValueError('limit should be integer')
-            payload['limit'] = limit
-
+            if not isinstance(category, str):
+                raise ValueError("category must be a string")
+            params["category"] = category
 
         if start_date:
-            if isinstance(start_date, str):
-                date = parser(start_date)
-            elif isinstance(end_date, datetime.date):
-                date = end_date
-            else:
-                raise ValueError('start_date must be string parsable by dateutil or datetime object')
-            payload['start_date'] = date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            date = self._parse_date(start_date, "start_date")
+            params["start_date"] = date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         if end_date:
-            if isinstance(end_date, str):
-                date = parser(end_date)
-            elif isinstance(end_date, datetime.date):
-                date = end_date
-            else:
-                raise ValueError('end_date must be string parsable by dateutil or datetime object')
-            payload['end_date'] = date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            date = self._parse_date(end_date, "end_date")
+            params["end_date"] = date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        if has_image:
-            payload['has_image'] = 'true' if has_image else 'false'
+        return self._get(self.search_endpoint, params)
 
-        if has_description:
-            payload['has_description'] = 'true' if has_description else 'false'
-        r = requests.get(self.search_endpoint, auth=self.api_key, 
-            timeout=self.timeout, 
-            params=payload)
+    def available_languages(self):
+        return self._get(self.available_languages_endpoint)
 
-        if r.status_code != requests.codes.ok:
-            raise APIException(r.json())
+    def available_regions(self):
+        return self._get(self.available_regions_endpoint)
 
-        return r.json()
+    def available_category(self):
+        return self._get(self.available_category_endpoint)
+
+    @staticmethod
+    def _parse_date(date_value, param_name):
+        if isinstance(date_value, str):
+            return parser.parse(date_value)
+        elif isinstance(date_value, datetime.date):
+            return date_value
+        else:
+            raise ValueError(
+                "{} must be a string parsable by dateutil or a datetime/date object".format(
+                    param_name
+                )
+            )

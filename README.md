@@ -1,52 +1,72 @@
 # currentsapi-python
-A Python client for the [Currents API](https://currentsapi.services/documents)
 
-##### Provided under MIT License by Zhi Rui Tam.
-*Note: this library may be subtly broken or buggy. The code is released under
-the MIT License – please take the following message to heart:*
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-## General 
-
-This is a Python client library for CurrentsAPI version 1. The functions for the library should mirror the
-endpoints from the [documentation](https://currentsapi.services/documents). 
+The official Python SDK for the [Currents API](https://currentsapi.services/en/docs/).
 
 ## Installation
-Installation for the package can be done via pip.
 
-```commandline
-    pip install currentsapi-python
+Install the package from PyPI:
+
+```bash
+pip install currentsapi
 ```
 
 ## Usage
 
-After installation, import client into your project:
+Import the client and initialize it with your API key:
 
 ```python
 from currentsapi import CurrentsAPI
+
+api = CurrentsAPI(api_key="YOUR_API_KEY")
 ```
 
-Initialize the client with your API key:
+## Endpoints
 
-```python
-api = CurrentsAPI(api_key='XXXXXXXXXXXXXXXXXXXXXXX')
-```
+### Latest News
 
-### Endpoints
- 
-#### Latest News
+Retrieve the latest news headlines. Optionally filter by language:
 
 ```python
 api.latest_news()
+api.latest_news(language="en")
 ```
-#### Query
+
+### Search
+
+Search news articles with optional filters:
 
 ```python
-api.search(keywords='Trump')
+api.search(keywords="OpenAI", language="en")
+api.search(country="US", category="technology", start_date="2024-01-01", end_date="2024-12-31")
 ```
 
+Supported parameters:
+
+- `keywords` – search keywords
+- `language` – article language code
+- `country` – country code
+- `category` – news category
+- `start_date` – start date (`YYYY-MM-DD` or `datetime` object)
+- `end_date` – end date (`YYYY-MM-DD` or `datetime` object)
+
+### Available Resources
+
+```python
+api.available_languages()
+api.available_regions()
+api.available_category()
+```
+
+## Authentication
+
+All requests are authenticated using an `Authorization` header. Pass your API key when instantiating the client:
+
+```python
+api = CurrentsAPI(api_key="YOUR_API_KEY")
+```
+
+Get your API key at [https://currentsapi.services/en/register](https://currentsapi.services/en/register).
+
+## License
+
+MIT License

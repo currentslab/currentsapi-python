@@ -121,4 +121,4 @@ venv.bak/
 dmypy.json
 
 # Pyre type checker
-.pyre/
+.pyre/tests/integration_test.py

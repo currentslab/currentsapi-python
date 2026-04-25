@@ -1,10 +1,11 @@
 import sys
 
 __project__ = "currentsapi"
-__version__ = "0.0.2"
-__repo__ = ""
+__version__ = "0.1.0"
+__repo__ = "https://github.com/currentslab/currentsapi-python"
 
 from currentsapi.client import CurrentsAPI
+
 
 def print_version():
     sv = sys.version_info
