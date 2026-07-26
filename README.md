@@ -57,6 +57,10 @@ api.available_regions()
 api.available_category()
 ```
 
+## Examples
+
+- [Generate a source-linked news briefing](examples/source_linked_briefing/README.md) from a live Search API response or a deterministic offline fixture.
+
 ## Authentication
 
 All requests are authenticated using an `Authorization` header. Pass your API key when instantiating the client:

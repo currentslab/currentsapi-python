@@ -1,0 +1,39 @@
+{
+  "status": "ok",
+  "news": [
+    {
+      "id": "example-market-001",
+      "title": "Grid operator announces storage procurement",
+      "description": "A fictional example describing a new storage procurement round.",
+      "url": "https://example.com/energy/storage-procurement",
+      "published": "2026-07-23T14:15:00Z",
+      "language": "en",
+      "category": [
+        "business"
+      ]
+    },
+    {
+      "id": "example-policy-001",
+      "title": "Battery storage policy enters public consultation",
+      "description": "A fictional example describing a public policy consultation.",
+      "url": "https://example.com/energy/storage-policy",
+      "published": "2026-07-25T08:00:00Z",
+      "language": "en",
+      "category": [
+        "regional"
+      ]
+    },
+    {
+      "id": "example-project-001",
+      "title": "Utility-scale battery project reaches commissioning",
+      "description": "A fictional example describing project commissioning.",
+      "url": "https://example.com/energy/project-commissioning",
+      "published": "2026-07-24T10:30:00Z",
+      "language": "en",
+      "category": [
+        "technology"
+      ]
+    }
+  ],
+  "page": 1
+}
