@@ -11,9 +11,22 @@ from pathlib import Path
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", type=Path, help="Read a saved Search API response.")
-    parser.add_argument("--keywords", default="artificial intelligence")
-    parser.add_argument("--language", default="en")
-    parser.add_argument("--output-dir", type=Path, default=Path("briefing-output"))
+    parser.add_argument(
+        "--keywords",
+        default="artificial intelligence",
+        help="Set the search terms for live mode.",
+    )
+    parser.add_argument(
+        "--language",
+        default="en",
+        help="Set the article language for live mode.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("briefing-output"),
+        help="Choose where to write briefing.md and briefing.json.",
+    )
     parser.add_argument(
         "--generated-at",
         help="Set the output timestamp for a custom fixture.",

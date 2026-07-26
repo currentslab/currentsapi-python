@@ -5,7 +5,7 @@ This example turns a Currents Search API response into two local files:
 - `briefing.md` for a person to read;
 - `briefing.json` for a dashboard, queue, or application-owned agent workflow.
 
-Every item keeps its publisher URL and publication time. The script does not call a language model, summarize full publisher articles, or make decisions for the reader.
+Every item keeps its source URL and publication time. The script does not call a language model, summarize full publisher articles, or make decisions for the reader.
 
 The example accompanies [Build a Source-Linked News Briefing with Currents Search API](https://currentsapi.services/en/blog/build-source-linked-news-briefing-currents-search-api).
 
@@ -57,14 +57,14 @@ The Markdown output remains deliberately plain:
 ```markdown
 # Source-Linked News Briefing
 
-Generated at: 2026-07-25T00:00:00+00:00
+Generated at: 2026-07-25T00:00:00Z
 
 - Battery storage policy enters public consultation - <https://example.com/energy/storage-policy>
   - Published: 2026-07-25T08:00:00Z
   - A fictional example describing a public policy consultation.
 ```
 
-The JSON output contains `generated_at` and a normalized `articles` list. Each article can contain:
+The JSON output contains `generated_at` and a normalized `articles` list. Each normalized article contains:
 
 - `title`
 - `description`
