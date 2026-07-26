@@ -25,7 +25,9 @@ python examples/source_linked_briefing/briefing.py \
   --output-dir briefing-output
 ```
 
-The fixture contains fictional `example.com` articles. It contains no customer data, publisher article bodies, or credentials.
+The fixture contains fictional `example.com` articles. It contains no customer data, publisher article bodies, or credentials. Its `_fixture_generated_at` value keeps both output files identical across runs.
+
+For another saved Search API response, add `_fixture_generated_at` at the top level or pass `--generated-at` explicitly.
 
 ## Run a live search
 

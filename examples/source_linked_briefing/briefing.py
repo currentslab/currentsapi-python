@@ -14,7 +14,10 @@ def parse_args():
     parser.add_argument("--keywords", default="artificial intelligence")
     parser.add_argument("--language", default="en")
     parser.add_argument("--output-dir", type=Path, default=Path("briefing-output"))
-    parser.add_argument("--generated-at", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--generated-at",
+        help="Set the output timestamp for a custom fixture.",
+    )
     return parser.parse_args()
 
 
@@ -55,6 +58,30 @@ def validate_response(response):
         raise ValueError("Search API response news must be a list")
     if any(not isinstance(article, dict) for article in response["news"]):
         raise ValueError("Every news item must be an object")
+    for article in response["news"]:
+        for field in ("title", "description", "url", "published", "language"):
+            value = article.get(field)
+            if value is not None and not isinstance(value, str):
+                raise ValueError("news item {} must be a string".format(field))
+        category = article.get("category")
+        if category is not None and (
+            not isinstance(category, list)
+            or any(not isinstance(item, str) for item in category)
+        ):
+            raise ValueError("news item category must be a list of strings")
+
+
+def resolve_generated_at(args, response):
+    if args.generated_at:
+        return args.generated_at
+    if args.fixture:
+        fixture_time = response.get("_fixture_generated_at")
+        if not isinstance(fixture_time, str) or not fixture_time:
+            raise ValueError(
+                "Fixture must include _fixture_generated_at or use --generated-at"
+            )
+        return fixture_time
+    return datetime.now(timezone.utc).isoformat()
 
 
 def build_output(response, generated_at):
@@ -86,7 +113,8 @@ def main():
             if args.fixture
             else load_live_response(args.keywords, args.language)
         )
-        generated_at = args.generated_at or datetime.now(timezone.utc).isoformat()
+        validate_response(response)
+        generated_at = resolve_generated_at(args, response)
         markdown, structured = build_output(response, generated_at)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         raise SystemExit("error: {}".format(exc))

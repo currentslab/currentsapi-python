@@ -133,6 +133,46 @@ def test_fixture_mode_rejects_malformed_search_response(tmp_path):
     assert not output_dir.exists()
 
 
+def test_fixture_mode_rejects_malformed_article_fields(tmp_path):
+    fixture = tmp_path / "search-response.json"
+    fixture.write_text(
+        json.dumps(
+            {
+                "status": "ok",
+                "news": [
+                    {
+                        "title": ["not", "a", "string"],
+                        "url": "https://news.example/invalid",
+                        "published": "2026-07-25T12:00:00Z",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "output"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(EXAMPLE),
+            "--fixture",
+            str(fixture),
+            "--output-dir",
+            str(output_dir),
+            "--generated-at",
+            "2026-07-25T13:00:00Z",
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert "news item title must be a string" in result.stderr
+    assert not output_dir.exists()
+
+
 def test_live_mode_requires_api_key(tmp_path):
     env = os.environ.copy()
     env.pop("CURRENTS_API_KEY", None)
@@ -179,6 +219,34 @@ def test_checked_in_fixture_runs_without_network_or_credentials(tmp_path):
     markdown = (tmp_path / "output" / "briefing.md").read_text(encoding="utf-8")
     assert "Battery storage policy enters public consultation" in markdown
     assert "https://example.com/energy/storage-policy" in markdown
+
+
+def test_checked_in_fixture_produces_identical_output_on_every_run(tmp_path):
+    first_output = tmp_path / "first"
+    second_output = tmp_path / "second"
+
+    for output_dir in (first_output, second_output):
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(EXAMPLE),
+                "--fixture",
+                str(CHECKED_IN_FIXTURE),
+                "--output-dir",
+                str(output_dir),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+
+    assert (first_output / "briefing.md").read_bytes() == (
+        second_output / "briefing.md"
+    ).read_bytes()
+    assert (first_output / "briefing.json").read_bytes() == (
+        second_output / "briefing.json"
+    ).read_bytes()
 
 
 def test_live_mode_uses_the_sdk_search_result(tmp_path):
