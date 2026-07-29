@@ -31,7 +31,8 @@ For another saved Search API response, add `_fixture_generated_at` at the top le
 
 ## Run a live search
 
-Create a [free Currents API key](https://currentsapi.services/en/register), then export it:
+Create a [free Currents API key](https://currentsapi.services/en/register?utm_source=github&utm_medium=referral&utm_campaign=content-build-source-linked-news-briefing-currents-search-api),
+then export it:
 
 ```bash
 export CURRENTS_API_KEY="your-api-key"

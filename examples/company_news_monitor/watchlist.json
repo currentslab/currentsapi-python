@@ -2,7 +2,7 @@
   "watches": [
     {
       "name": "Battery competitors",
-      "keywords": "\"Northstar Battery\" OR \"Atlas Storage\"",
+      "query": "\"Northstar Battery\" OR \"Atlas Storage\"",
       "language": "en"
     },
     {

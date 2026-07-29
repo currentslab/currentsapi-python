@@ -31,7 +31,8 @@ no new articles.
 
 ## Configure a watchlist
 
-Each watch requires a unique `name` and `keywords`. `language` defaults to `en`.
+Each watch requires a unique `name` and exactly one search field. Use `keywords`
+for standard search or `query` for Boolean syntax. `language` defaults to `en`.
 The optional `domain` narrows that watch to one publisher domain.
 
 ```json
@@ -39,7 +40,7 @@ The optional `domain` narrows that watch to one publisher domain.
   "watches": [
     {
       "name": "Competitor names",
-      "keywords": "\"Northstar Battery\" OR \"Atlas Storage\"",
+      "query": "\"Northstar Battery\" OR \"Atlas Storage\"",
       "language": "en"
     },
     {
@@ -57,8 +58,8 @@ perform entity resolution, so ambiguous company names need additional terms.
 
 ## Run a live window
 
-Create a [Currents API key](https://currentsapi.services/en/register), then set
-it in your environment:
+Create a [Currents API key](https://currentsapi.services/en/register?utm_source=github&utm_medium=referral&utm_campaign=content-build-company-news-monitor-currents-search-api),
+then set it in your environment:
 
 ```bash
 export CURRENTS_API_KEY="your-api-key"
@@ -76,9 +77,9 @@ python examples/company_news_monitor/monitor.py \
   --output-dir company-monitor-output
 ```
 
-Live mode sends `keywords`, `language`, `start_date`, `end_date`, `page_number`,
-and `page_size` for every watch. It also sends `domain` when the watch defines
-one.
+Live mode sends the watch's `keywords` or `query`, plus `language`, `start_date`,
+`end_date`, `page_number`, and `page_size`. It also sends `domain` when the
+watch defines one.
 
 Use a window and page size allowed by your Currents plan. Search windows,
 lookback, page sizes, and retrievable result counts can vary by plan.

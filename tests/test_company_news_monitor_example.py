@@ -80,6 +80,27 @@ def test_watchlist_parser_rejects_duplicate_names(tmp_path):
         module.load_watchlist(path)
 
 
+@pytest.mark.parametrize(
+    "watch",
+    [
+        {"name": "Missing search", "language": "en"},
+        {
+            "name": "Ambiguous search",
+            "keywords": "Northstar Battery",
+            "query": '"Northstar Battery" OR "Atlas Storage"',
+            "language": "en",
+        },
+    ],
+)
+def test_watchlist_parser_requires_exactly_one_search_field(tmp_path, watch):
+    module = load_example_module()
+    path = tmp_path / "watchlist.json"
+    path.write_text(json.dumps({"watches": [watch]}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="exactly one of keywords or query"):
+        module.load_watchlist(path)
+
+
 def test_date_boundaries_are_inclusive_and_outside_articles_are_removed():
     module = load_example_module()
     start = datetime(2026, 8, 4, tzinfo=timezone.utc)
@@ -374,7 +395,16 @@ def test_second_run_uses_state_and_reports_no_new_articles(tmp_path):
     ).read_text(encoding="utf-8")
 
 
-def test_live_mode_sends_documented_search_parameters(monkeypatch):
+@pytest.mark.parametrize(
+    ("search_field", "search_value"),
+    [
+        ("keywords", '"grid storage" regulation'),
+        ("query", '"Northstar Battery" OR "Atlas Storage"'),
+    ],
+)
+def test_live_mode_sends_matching_documented_search_parameter(
+    monkeypatch, search_field, search_value
+):
     module = load_example_module()
     captured = {}
 
@@ -395,9 +425,9 @@ def test_live_mode_sends_documented_search_parameters(monkeypatch):
     monkeypatch.setattr(module.requests, "get", fake_get)
     watch = {
         "name": "Policy",
-        "keywords": "\"grid storage\" regulation",
         "language": "en",
         "domain": "example.com",
+        search_field: search_value,
     }
     start = datetime(2026, 8, 4, 9, tzinfo=timezone.utc)
     end = datetime(2026, 8, 5, 9, tzinfo=timezone.utc)
@@ -408,7 +438,7 @@ def test_live_mode_sends_documented_search_parameters(monkeypatch):
     assert captured["url"] == module.SEARCH_URL
     assert captured["headers"] == {"Authorization": "Bearer test-key"}
     assert captured["params"] == {
-        "keywords": "\"grid storage\" regulation",
+        search_field: search_value,
         "language": "en",
         "start_date": "2026-08-04T09:00:00Z",
         "end_date": "2026-08-05T09:00:00Z",
@@ -417,6 +447,69 @@ def test_live_mode_sends_documented_search_parameters(monkeypatch):
         "domain": "example.com",
     }
     assert captured["timeout"] == 20
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "javascript:alert(1)",
+        "ftp://example.com/report",
+        "https://example.com/report\n- injected",
+    ],
+)
+def test_article_url_requires_safe_http_or_https_url(url):
+    module = load_example_module()
+    start = datetime(2026, 8, 4, tzinfo=timezone.utc)
+    end = datetime(2026, 8, 5, tzinfo=timezone.utc)
+
+    with pytest.raises(ValueError, match="HTTP or HTTPS"):
+        module.normalize_article(
+            {
+                "title": "Unsafe URL",
+                "url": url,
+                "published": "2026-08-04T12:00:00Z",
+            },
+            start,
+            end,
+        )
+
+
+def test_report_escapes_hostile_publisher_metadata():
+    module = load_example_module()
+    start = datetime(2026, 8, 4, tzinfo=timezone.utc)
+    end = datetime(2026, 8, 5, tzinfo=timezone.utc)
+    articles = [
+        {
+            "keys": ["url:https://example.com/report_(final)"],
+            "title": "[Trusted](https://attacker.example) <script>",
+            "description": "First line\n- [Injected](https://attacker.example)\n<img>",
+            "url": "https://example.com/report_(final)",
+            "published": "2026-08-04T12:00:00Z",
+            "watches": ["Company"],
+        }
+    ]
+
+    markdown, _ = module.render_report(
+        "2026-08-05T09:00:00Z",
+        start,
+        end,
+        articles,
+        {"Company": 1},
+    )
+
+    assert "[Trusted](https://attacker.example)" not in markdown
+    assert "\n- [Injected]" not in markdown
+    assert "<script>" not in markdown
+    assert "<img>" not in markdown
+    assert (
+        r"\[Trusted\]\(https://attacker\.example\) \<script\>"
+        in markdown
+    )
+    assert (
+        r"First line \- \[Injected\]\(https://attacker\.example\) \<img\>"
+        in markdown
+    )
+    assert "(<https://example.com/report_(final)>)" in markdown
 
 
 def test_report_output_retains_every_url_and_published_timestamp(tmp_path):

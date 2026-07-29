@@ -4,8 +4,10 @@
 import argparse
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote, urlsplit
 
 import requests
 
@@ -86,14 +88,25 @@ def load_watchlist(path):
             raise ValueError("every watch must be an object")
         name = item.get("name")
         keywords = item.get("keywords")
+        query = item.get("query")
         language = item.get("language", "en")
         domain = item.get("domain")
         if not isinstance(name, str) or not name.strip():
             raise ValueError("every watch requires a non-empty name")
         if name in names:
             raise ValueError("watch names must be unique")
-        if not isinstance(keywords, str) or not keywords.strip():
-            raise ValueError("every watch requires non-empty keywords")
+        search_fields = {
+            key: value
+            for key, value in (("keywords", keywords), ("query", query))
+            if value is not None
+        }
+        if len(search_fields) != 1:
+            raise ValueError("every watch requires exactly one of keywords or query")
+        search_field, search_value = next(iter(search_fields.items()))
+        if not isinstance(search_value, str) or not search_value.strip():
+            raise ValueError(
+                "watch {} must be a non-empty string".format(search_field)
+            )
         if not isinstance(language, str) or not language.strip():
             raise ValueError("watch language must be a non-empty string")
         if domain is not None and (
@@ -101,14 +114,13 @@ def load_watchlist(path):
         ):
             raise ValueError("watch domain must be a non-empty string")
         names.add(name)
-        watches.append(
-            {
-                "name": name,
-                "keywords": keywords,
-                "language": language,
-                "domain": domain,
-            }
-        )
+        watch = {
+            "name": name,
+            "language": language,
+            "domain": domain,
+            search_field: search_value,
+        }
+        watches.append(watch)
     if not watches:
         raise ValueError("watchlist must contain at least one watch")
     return watches
@@ -171,8 +183,18 @@ def fetch_live_response(watch, start, end, page_size):
     if page_size < 1:
         raise ValueError("page_size must be positive")
 
+    search_fields = [
+        key for key in ("keywords", "query") if watch.get(key) is not None
+    ]
+    if len(search_fields) != 1:
+        raise ValueError("watch requires exactly one of keywords or query")
+    search_field = search_fields[0]
+    search_value = watch[search_field]
+    if not isinstance(search_value, str) or not search_value.strip():
+        raise ValueError("watch {} must be a non-empty string".format(search_field))
+
     params = {
-        "keywords": watch["keywords"],
+        search_field: search_value,
         "language": watch["language"],
         "start_date": format_timestamp(start),
         "end_date": format_timestamp(end),
@@ -212,6 +234,13 @@ def normalize_article(article, start, end):
             raise ValueError("news item {} must be a string".format(label))
     if not url:
         raise ValueError("news item url must be present")
+    parsed_url = urlsplit(url)
+    if (
+        parsed_url.scheme.lower() not in {"http", "https"}
+        or not parsed_url.netloc
+        or any(character.isspace() or ord(character) < 32 for character in url)
+    ):
+        raise ValueError("news item url must be an HTTP or HTTPS URL")
     published_at = parse_timestamp(published, "news item published")
     if published_at < start or published_at > end:
         return None
@@ -309,6 +338,19 @@ def collect_articles(watches, responses, start, end, seen_keys):
     return articles, watch_counts, discovered_keys
 
 
+def escape_markdown_text(value):
+    normalized = " ".join(value.split())
+    return re.sub(r"([\\`*_\[\]{}()#+\-.!|<>~])", r"\\\1", normalized)
+
+
+def markdown_url(value):
+    encoded = quote(
+        value,
+        safe=":/?#[]@!$&'()*+,;=%-._~",
+    )
+    return "<{}>".format(encoded)
+
+
 def render_report(generated_at, start, end, articles, watch_counts):
     lines = [
         "# Company News Change Report",
@@ -320,11 +362,20 @@ def render_report(generated_at, start, end, articles, watch_counts):
     if not articles:
         lines.append("No new matching articles.")
     for article in articles:
-        lines.append("- [{}]({})".format(article["title"], article["url"]))
+        lines.append(
+            "- [{}]({})".format(
+                escape_markdown_text(article["title"]),
+                markdown_url(article["url"]),
+            )
+        )
         lines.append("  - Published: {}".format(article["published"]))
-        lines.append("  - Watches: {}".format(", ".join(article["watches"])))
+        lines.append(
+            "  - Watches: {}".format(
+                ", ".join(escape_markdown_text(name) for name in article["watches"])
+            )
+        )
         if article["description"]:
-            lines.append("  - {}".format(article["description"]))
+            lines.append("  - {}".format(escape_markdown_text(article["description"])))
 
     structured = {
         "generated_at": generated_at,
