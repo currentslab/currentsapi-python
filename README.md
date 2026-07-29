@@ -60,6 +60,8 @@ api.available_category()
 ## Examples
 
 - [Generate a source-linked news briefing](examples/source_linked_briefing/README.md) from a live Search API response or a deterministic offline fixture.
+- [Build a company news monitor](examples/company_news_monitor/README.md) with
+  a JSON watchlist, bounded search window, local state, and deterministic fixture.
 
 ## Authentication
 

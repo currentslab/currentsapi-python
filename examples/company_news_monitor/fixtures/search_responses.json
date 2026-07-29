@@ -1,0 +1,45 @@
+{
+  "_fixture_generated_at": "2026-08-05T09:00:00Z",
+  "_fixture_start_date": "2026-08-04T09:00:00Z",
+  "_fixture_end_date": "2026-08-05T09:00:00Z",
+  "responses": {
+    "Battery competitors": {
+      "status": "ok",
+      "news": [
+        {
+          "id": "fictional-factory-1",
+          "title": "Northstar Battery opens a pilot recycling line",
+          "description": "A fictional company begins pilot operations.",
+          "url": "https://example.com/business/northstar-pilot-line",
+          "published": "2026-08-05T07:30:00Z"
+        },
+        {
+          "id": "fictional-joint-project-1",
+          "title": "Atlas Storage joins a grid demonstration",
+          "description": "A fictional storage supplier joins a demonstration.",
+          "url": "https://example.com/energy/atlas-grid-project",
+          "published": "2026-08-04T14:00:00Z"
+        }
+      ]
+    },
+    "Industry policy": {
+      "status": "ok",
+      "news": [
+        {
+          "id": "fictional-policy-1",
+          "title": "Regulator publishes a grid storage consultation",
+          "description": "A fictional regulator opens a consultation period.",
+          "url": "https://example.com/policy/grid-storage-consultation",
+          "published": "2026-08-05T08:00:00Z"
+        },
+        {
+          "id": "fictional-joint-project-1",
+          "title": "Atlas Storage joins a grid demonstration",
+          "description": "A fictional storage supplier joins a demonstration.",
+          "url": "https://example.com/energy/atlas-grid-project",
+          "published": "2026-08-04T14:00:00Z"
+        }
+      ]
+    }
+  }
+}

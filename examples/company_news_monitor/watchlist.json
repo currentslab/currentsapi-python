@@ -1,0 +1,15 @@
+{
+  "watches": [
+    {
+      "name": "Battery competitors",
+      "query": "\"Northstar Battery\" OR \"Atlas Storage\"",
+      "language": "en"
+    },
+    {
+      "name": "Industry policy",
+      "keywords": "\"grid storage\" regulation",
+      "language": "en",
+      "domain": "example.com"
+    }
+  ]
+}
