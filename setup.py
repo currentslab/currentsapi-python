@@ -13,11 +13,6 @@ with (ROOT / "README.md").open(encoding="utf-8") as fh:
 with (ROOT / "currentsapi" / "__init__.py").open(encoding="utf-8") as fh:
     version = re.search(r'^__version__ = "(.*?)"$', fh.read(), re.MULTILINE).group(1)
 
-install_requires = [
-    "requests>=2.25.0",
-    "python-dateutil>=2.8.0",
-]
-
 extras_require = {
     "dev": [
         "pytest",
