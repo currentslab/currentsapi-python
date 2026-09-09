@@ -4,11 +4,15 @@ The official Python SDK for the [Currents API](https://currentsapi.services/en/d
 
 ## Installation
 
-Install the package from PyPI:
+Install the package from PyPI. The distribution name is `currentsapi` (this
+repository is `currentsapi-python`, and the Python import name is also
+`currentsapi`):
 
 ```bash
 pip install currentsapi
 ```
+
+Python 3.8+ is supported.
 
 ## Usage
 
@@ -76,3 +80,17 @@ Get your API key at [https://currentsapi.services/en/register](https://currentsa
 ## License
 
 MIT License
+
+## Error handling
+
+Any non-200 API response raises `CurrentsAPIError`, which exposes the parsed
+response body:
+
+```python
+from currentsapi.client import CurrentsAPIError
+
+try:
+    api.latest_news()
+except CurrentsAPIError as exc:
+    print(exc.status, exc.code, exc.message)
+```

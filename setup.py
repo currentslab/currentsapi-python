@@ -1,22 +1,32 @@
 #!/usr/bin/env python
 
+import re
+from pathlib import Path
+
 from setuptools import setup, find_packages
 
-with open("README.md", "r") as fh:
+ROOT = Path(__file__).parent
+
+with (ROOT / "README.md").open(encoding="utf-8") as fh:
     long_description = fh.read()
+
+with (ROOT / "currentsapi" / "__init__.py").open(encoding="utf-8") as fh:
+    version = re.search(r'^__version__ = "(.*?)"$', fh.read(), re.MULTILINE).group(1)
+
+extras_require = {
+    "dev": [
+        "pytest",
+    ],
+}
 
 install_requires = [
     "requests>=2.25.0",
     "python-dateutil>=2.8.0",
 ]
 
-tests_require = [
-    "pytest",
-]
-
 setup(
     name="currentsapi",
-    version="0.1.0",
+    version=version,
     author="Currents Dev",
     author_email="ray@currentsapi.services",
     license="MIT",
@@ -25,7 +35,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=install_requires,
-    tests_require=tests_require,
+    extras_require=extras_require,
     description="Official Python client for the Currents API",
     keywords=["currentsapi", "news", "wrapper", "currents", "api"],
     classifiers=[
