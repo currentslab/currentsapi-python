@@ -4,7 +4,9 @@ __project__ = "currentsapi"
 __version__ = "0.1.0"
 __repo__ = "https://github.com/currentslab/currentsapi-python"
 
-from currentsapi.client import CurrentsAPI
+from .client import CurrentsAPI
+
+__all__ = ["CurrentsAPI"]
 
 
 def print_version():
