@@ -11,19 +11,25 @@ class CurrentsAPIError(Exception):
 
     def __init__(self, response):
         self.response = response
-        super().__init__(str(response))
+        self._status = response.get("status")
+        self._code = response.get("code")
+        self._message = response.get("message") or response.get("msg")
+        super().__init__(self._message or str(response))
 
     @property
     def status(self):
-        return self.response.get("status")
+        try:
+            return int(self._status)
+        except (TypeError, ValueError):
+            return self._status
 
     @property
     def code(self):
-        return self.response.get("code")
+        return self._code
 
     @property
     def message(self):
-        return self.response.get("message")
+        return self._message
 
 
 class CurrentsAPI:
@@ -95,11 +101,11 @@ class CurrentsAPI:
             params["category"] = category
 
         if start_date:
-            date = self._parse_date(start_date, "start_date")
+            date = self._normalize_date(self._parse_date(start_date, "start_date"))
             params["start_date"] = date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         if end_date:
-            date = self._parse_date(end_date, "end_date")
+            date = self._normalize_date(self._parse_date(end_date, "end_date"))
             params["end_date"] = date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         return self._get(self.search_endpoint, params)
@@ -116,7 +122,12 @@ class CurrentsAPI:
     @staticmethod
     def _parse_date(date_value, param_name):
         if isinstance(date_value, str):
-            return parser.parse(date_value)
+            try:
+                return parser.parse(date_value)
+            except (parser.ParserError, OverflowError, ValueError) as exc:
+                raise ValueError(
+                    "{} is not a parsable date: {}".format(param_name, exc)
+                ) from exc
         elif isinstance(date_value, datetime.date):
             return date_value
         else:
@@ -125,3 +136,9 @@ class CurrentsAPI:
                     param_name
                 )
             )
+
+    @staticmethod
+    def _normalize_date(date_value):
+        if isinstance(date_value, datetime.datetime) and date_value.tzinfo is not None:
+            return date_value.astimezone(datetime.timezone.utc)
+        return date_value

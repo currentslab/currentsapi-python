@@ -1,7 +1,7 @@
 import sys
 
 __project__ = "currentsapi"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __repo__ = "https://github.com/currentslab/currentsapi-python"
 
 from .client import CurrentsAPI
