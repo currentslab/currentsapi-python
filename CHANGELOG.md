@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.3
+
+### Fixed
+- Restored documented `YYYY-MM-DD` string support in `search()` (broken in
+  0.1.2 when naive datetimes started being rejected); date-only strings are
+  formatted as UTC midnight. Naive timestamp strings (e.g.
+  `2024-01-15T10:00:00`) remain rejected as ambiguous.
+- `examples/_example_utils.safe_markdown_url` now validates with `urlsplit`
+  (scheme + hostname required) and percent-encodes angle brackets,
+  parentheses, and spaces, closing a Markdown/HTML injection path where a
+  `https://...><script>...` URL passed validation.
+- `CurrentsAPI(domain=...)` now requires explicit `allow_custom_domain=True`
+  for any domain other than the default, since a custom domain receives your
+  API key on every request.
+- `examples/source_linked_briefing` catches `CurrentsAPIError` and prints a
+  clean error message (with HTTP status) instead of a traceback.
+
 ## 0.1.2
 
 ### Fixed

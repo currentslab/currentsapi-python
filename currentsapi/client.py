@@ -45,9 +45,16 @@ class CurrentsAPI:
         domain=constants.DOMAIN,
         version=constants.VERSION,
         timeout=30,
+        allow_custom_domain=False,
     ):
         if not isinstance(api_key, str):
             raise ValueError("api_key must be a string")
+        if domain != constants.DOMAIN and not allow_custom_domain:
+            raise ValueError(
+                "Passing a custom domain forwards your API key to that host. "
+                "If this is intentional (e.g. testing), pass "
+                "allow_custom_domain=True."
+            )
         self.api_key = ApiAuth(api_key)
         self.latest_endpoint = constants.LATEST_NEWS_URL % (domain, version)
         self.search_endpoint = constants.SEARCH_URL % (domain, version)
@@ -153,6 +160,10 @@ class CurrentsAPI:
     @staticmethod
     def _parse_date(date_value, param_name):
         if isinstance(date_value, str):
+            try:
+                return datetime.date.fromisoformat(date_value)
+            except ValueError:
+                pass
             try:
                 return parser.parse(date_value)
             except (OverflowError, ValueError) as exc:

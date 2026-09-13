@@ -2,6 +2,7 @@ import datetime
 import unittest
 from unittest.mock import Mock, patch
 
+from currentsapi import constants
 from currentsapi import CurrentsAPI
 from currentsapi.client import CurrentsAPIError
 
@@ -34,7 +35,7 @@ class TestClient(unittest.TestCase):
             "https://api.currentsapi.services/v1/available/categories",
         )
 
-        api = CurrentsAPI("dummy_key", "localhost", "v0")
+        api = CurrentsAPI("dummy_key", "localhost", "v0", allow_custom_domain=True)
         self.assertEqual(api.latest_endpoint, "https://localhost/v0/latest-news")
         self.assertEqual(api.search_endpoint, "https://localhost/v0/search")
 
@@ -261,6 +262,30 @@ class TestClient(unittest.TestCase):
         exc = CurrentsAPIError(["unexpected"])
         self.assertIsNone(exc.code)
         self.assertEqual(str(exc), "Unknown API error")
+
+    @patch("currentsapi.client.requests.get")
+    def test_date_only_string_accepted(self, mock_get):
+        mock_get.return_value = Mock(status_code=200, json=Mock(return_value={"status": "ok"}))
+        api = CurrentsAPI("key")
+        api.search(start_date="2024-01-15", end_date="2024-06-30")
+        kwargs = mock_get.call_args.kwargs
+        self.assertEqual(kwargs["params"]["start_date"], "2024-01-15T00:00:00Z")
+        self.assertEqual(kwargs["params"]["end_date"], "2024-06-30T00:00:00Z")
+
+    @patch("currentsapi.client.requests.get")
+    def test_naive_timestamp_string_rejected(self, mock_get):
+        api = CurrentsAPI("key")
+        with self.assertRaises(ValueError):
+            api.search(start_date="2024-01-15T10:00:00")
+
+    def test_custom_domain_requires_opt_in(self):
+        with self.assertRaises(ValueError) as ctx:
+            CurrentsAPI("key", domain="attacker.example")
+        self.assertIn("allow_custom_domain", str(ctx.exception))
+        api = CurrentsAPI("key", domain="attacker.example", allow_custom_domain=True)
+        self.assertEqual(api.latest_endpoint, "https://attacker.example/v1/latest-news")
+        api = CurrentsAPI("key", domain=constants.DOMAIN)
+        self.assertEqual(api.latest_endpoint, "https://api.currentsapi.services/v1/latest-news")
 
 if __name__ == "__main__":
     unittest.main()

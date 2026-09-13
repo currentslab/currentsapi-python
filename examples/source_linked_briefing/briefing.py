@@ -13,6 +13,14 @@ from _example_utils import escape_markdown_text, safe_markdown_url
 
 sys.path.pop(0)
 
+try:
+    from currentsapi.client import CurrentsAPIError
+except ImportError:  # pragma: no cover - currentsapi not installed
+    class CurrentsAPIError(Exception):
+        """Placeholder when currentsapi is unavailable; never raised."""
+
+        pass
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -135,6 +143,11 @@ def main():
         validate_response(response)
         generated_at = resolve_generated_at(args, response)
         markdown, structured = build_output(response, generated_at)
+    except CurrentsAPIError as exc:
+        status = exc.status if exc.status is not None else "unknown"
+        raise SystemExit(
+            "error: Currents API request failed (HTTP {}): {}".format(status, exc)
+        )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         raise SystemExit("error: {}".format(exc))
 
