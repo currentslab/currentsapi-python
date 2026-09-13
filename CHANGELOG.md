@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.2
+
+### Fixed
+- Restored compatibility with the declared `python-dateutil>=2.8.0` floor:
+  the date-parse error handler no longer references `parser.ParserError`
+  (introduced in dateutil 2.8.1).
+- Non-JSON error responses (e.g. HTML gateway 502s) and non-object JSON
+  error payloads now raise `CurrentsAPIError` instead of leaking
+  `JSONDecodeError`/`AttributeError`. The exception now carries the real
+  HTTP status code via its `status` property; the payload's `status` value
+  is only used when no HTTP status is available.
+- `search()` now rejects falsey invalid arguments (`keywords=0`, empty/
+  whitespace keywords) instead of silently omitting them.
+- Naive `datetime` inputs are rejected with a clear `ValueError` (they were
+  silently labeled UTC before); `date` objects are now explicitly formatted
+  as UTC midnight.
+- `examples/source_linked_briefing` now escapes publisher-controlled
+  Markdown text and validates URL schemes, matching the protection the
+  company-monitor example already had (blocks `javascript:` link injection).
+
 ## 0.1.1
 
 ### Fixed

@@ -9,19 +9,25 @@ from currentsapi.authentication import ApiAuth
 class CurrentsAPIError(Exception):
     """Raised when the Currents API returns an error response."""
 
-    def __init__(self, response):
+    def __init__(self, response, http_status=None):
+        if not isinstance(response, dict):
+            response = {}
         self.response = response
-        self._status = response.get("status")
+        self._http_status = http_status
         self._code = response.get("code")
         self._message = response.get("message") or response.get("msg")
-        super().__init__(self._message or str(response))
+        super().__init__(self._message or (str(response) if response else "Unknown API error"))
 
     @property
     def status(self):
+        """HTTP status code as int; payload status used only as last resort."""
+        if self._http_status is not None:
+            return self._http_status
+        payload_status = self.response.get("status")
         try:
-            return int(self._status)
+            return int(payload_status)
         except (TypeError, ValueError):
-            return self._status
+            return payload_status
 
     @property
     def code(self):
@@ -58,17 +64,36 @@ class CurrentsAPI:
             params=params or {},
         )
         if r.status_code != requests.codes.ok:
-            raise CurrentsAPIError(r.json())
-        return r.json()
+            raise self._error_from_response(r)
+        try:
+            payload = r.json()
+        except ValueError:
+            raise CurrentsAPIError(
+                {"message": "Response body is not valid JSON"},
+                http_status=r.status_code,
+            )
+        return payload
+
+    @staticmethod
+    def _error_from_response(r):
+        try:
+            payload = r.json()
+        except ValueError:
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {
+                "message": "API returned a non-object error payload",
+                "details": payload,
+            }
+        return CurrentsAPIError(payload, http_status=r.status_code)
 
     def latest_news(self, language=None):
         params = {}
-        if language:
+        if language is not None:
             if not isinstance(language, str):
                 raise ValueError("language must be a string")
             params["language"] = language
         return self._get(self.latest_endpoint, params)
-
     def search(
         self,
         language=None,
@@ -80,32 +105,38 @@ class CurrentsAPI:
     ):
         params = {}
 
-        if keywords:
+        if keywords is not None:
             if not isinstance(keywords, str):
                 raise ValueError("keywords must be a string")
+            if not keywords.strip():
+                raise ValueError("keywords must not be empty")
             params["keywords"] = keywords
 
-        if country:
+        if country is not None:
             if not isinstance(country, str):
                 raise ValueError("country must be a string")
             params["country"] = country
 
-        if language:
+        if language is not None:
             if not isinstance(language, str):
                 raise ValueError("language must be a string")
             params["language"] = language
 
-        if category:
+        if category is not None:
             if not isinstance(category, str):
                 raise ValueError("category must be a string")
             params["category"] = category
 
-        if start_date:
-            date = self._normalize_date(self._parse_date(start_date, "start_date"))
+        if start_date is not None:
+            date = self._normalize_date(
+                self._parse_date(start_date, "start_date"), "start_date"
+            )
             params["start_date"] = date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        if end_date:
-            date = self._normalize_date(self._parse_date(end_date, "end_date"))
+        if end_date is not None:
+            date = self._normalize_date(
+                self._parse_date(end_date, "end_date"), "end_date"
+            )
             params["end_date"] = date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         return self._get(self.search_endpoint, params)
@@ -124,7 +155,7 @@ class CurrentsAPI:
         if isinstance(date_value, str):
             try:
                 return parser.parse(date_value)
-            except (parser.ParserError, OverflowError, ValueError) as exc:
+            except (OverflowError, ValueError) as exc:
                 raise ValueError(
                     "{} is not a parsable date: {}".format(param_name, exc)
                 ) from exc
@@ -138,7 +169,18 @@ class CurrentsAPI:
             )
 
     @staticmethod
-    def _normalize_date(date_value):
-        if isinstance(date_value, datetime.datetime) and date_value.tzinfo is not None:
+    def _normalize_date(date_value, param_name):
+        if isinstance(date_value, datetime.datetime):
+            if date_value.tzinfo is None:
+                raise ValueError(
+                    "{} datetime must be timezone-aware; attach a tzinfo "
+                    "(naive datetimes are ambiguous and are NOT assumed to be "
+                    "UTC)".format(param_name)
+                )
             return date_value.astimezone(datetime.timezone.utc)
+        if isinstance(date_value, datetime.date):
+            return datetime.datetime(
+                date_value.year, date_value.month, date_value.day,
+                tzinfo=datetime.timezone.utc,
+            )
         return date_value
