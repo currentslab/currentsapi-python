@@ -1,6 +1,7 @@
 """Shared helpers for the shipped Currents API examples."""
 
 import re
+from urllib.parse import urlsplit
 
 
 _MARKDOWN_ESCAPES = re.compile(r"([\\`*_\[\]()<>#!|{}])")
@@ -14,19 +15,25 @@ def escape_markdown_text(value):
 def safe_markdown_url(url, allowed_schemes=("http", "https")):
     """Return a URL safe to embed in Markdown, or ``None`` if unsafe.
 
-    Rejects empty values, non-string values, unknown/unsafe schemes
-    (e.g. ``javascript:``), and whitespace/control characters that could
-    break out of a Markdown link target.
+    Requires an explicit allowed scheme (default http/https) and a hostname;
+    percent-encodes characters that could break out of ``[..](..)`` or
+    ``<..>`` Markdown targets (parentheses, angle brackets, spaces,
+    control characters).
     """
     if not isinstance(url, str):
         return None
     candidate = url.strip()
-    if not candidate:
+    if not candidate or any(ord(ch) < 0x20 for ch in candidate):
         return None
-    if any(ch.isspace() or ord(ch) < 0x20 for ch in candidate):
+    parts = urlsplit(candidate)
+    if parts.scheme.lower() not in allowed_schemes or not parts.netloc:
         return None
-    match = re.match(r"^([A-Za-z][A-Za-z0-9+.-]*):", candidate)
-    if not match or match.group(1).lower() not in allowed_schemes:
+    if any(ch.isspace() for ch in candidate):
         return None
-    # Escape parentheses so the URL cannot break out of [..](..) syntax.
-    return candidate.replace("(", "%28").replace(")", "%29")
+    return (
+        candidate.replace("<", "%3C")
+        .replace(">", "%3E")
+        .replace("(", "%28")
+        .replace(")", "%29")
+        .replace(" ", "%20")
+    )
