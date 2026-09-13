@@ -160,6 +160,54 @@ class TestClient(unittest.TestCase):
         with self.assertRaises(ValueError):
             api.search(start_date=123)
 
+    @patch("currentsapi.client.requests.get")
+    def test_api_error_uses_msg_key(self, mock_get):
+        mock_get.return_value = Mock(
+            status_code=401,
+            json=Mock(return_value={"status": "401", "msg": "Invalid token"}),
+        )
+        api = CurrentsAPI("key")
+        with self.assertRaises(CurrentsAPIError) as ctx:
+            api.latest_news()
+        self.assertEqual(ctx.exception.status, 401)
+        self.assertIsNone(ctx.exception.code)
+        self.assertEqual(ctx.exception.message, "Invalid token")
+        self.assertEqual(str(ctx.exception), "Invalid token")
+
+    @patch("currentsapi.client.requests.get")
+    def test_api_error_prefers_message_over_msg(self, mock_get):
+        mock_get.return_value = Mock(
+            status_code=400,
+            json=Mock(
+                return_value={
+                    "status": "400",
+                    "msg": "Bad request",
+                    "code": "INVALID_QUERY",
+                    "message": "Invalid parameters",
+                }
+            ),
+        )
+        api = CurrentsAPI("key")
+        with self.assertRaises(CurrentsAPIError) as ctx:
+            api.search(keywords="x", category="nope")
+        self.assertEqual(ctx.exception.status, 400)
+        self.assertEqual(ctx.exception.code, "INVALID_QUERY")
+        self.assertEqual(ctx.exception.message, "Invalid parameters")
+        self.assertEqual(str(ctx.exception), "Invalid parameters")
+
+    @patch("currentsapi.client.requests.get")
+    def test_tz_aware_datetime_converted_to_utc(self, mock_get):
+        mock_get.return_value = Mock(status_code=200, json=Mock(return_value={"status": "ok"}))
+        api = CurrentsAPI("key")
+        tz = datetime.timezone(datetime.timedelta(hours=8))
+        api.search(start_date=datetime.datetime(2024, 6, 1, 12, 0, tzinfo=tz))
+        kwargs = mock_get.call_args.kwargs
+        self.assertEqual(kwargs["params"]["start_date"], "2024-06-01T04:00:00Z")
+
+    def test_impossible_date_string_raises_valueerror(self):
+        api = CurrentsAPI("key")
+        with self.assertRaises(ValueError):
+            api.search(start_date="2026-13-45")
 
 if __name__ == "__main__":
     unittest.main()

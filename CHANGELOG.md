@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.1
+
+### Fixed
+- `CurrentsAPIError.message` now falls back to the API's `msg` key (401
+  responses carry `msg`, not `message`), and `str(exception)` returns the
+  human-readable message instead of a raw dict repr.
+- `CurrentsAPIError.status` now returns an `int` when the payload carries a
+  numeric status string, so `e.status == 401` works as expected.
+- Timezone-aware `datetime` inputs to `search()` are converted to UTC before
+  formatting, instead of silently losing their offset while the string gains a
+  misleading `Z` suffix.
+- Unparsable date strings (e.g. `"2026-13-45"`) now raise `ValueError` with a
+  clear message instead of leaking `dateutil.parser.ParserError`.
+
 ## 0.1.0
 
 ### Added
