@@ -71,8 +71,8 @@ class TestClient(unittest.TestCase):
             language="en",
             country="US",
             category="technology",
-            start_date="2024-01-15",
-            end_date="2024-06-30",
+            start_date="2024-01-15T00:00:00Z",
+            end_date="2024-06-30T00:00:00Z",
         )
         args, kwargs = mock_get.call_args
         self.assertEqual(
@@ -146,9 +146,10 @@ class TestClient(unittest.TestCase):
         api = CurrentsAPI("key")
         with self.assertRaises(CurrentsAPIError) as ctx:
             api.latest_news()
-        self.assertEqual(ctx.exception.status, "error")
+        self.assertEqual(ctx.exception.status, 401)
         self.assertEqual(ctx.exception.code, "Unauthorized")
         self.assertEqual(ctx.exception.message, "Invalid key")
+        self.assertEqual(ctx.exception.response["status"], "error")
 
     def test_invalid_keywords_type(self):
         api = CurrentsAPI("key")
@@ -208,6 +209,58 @@ class TestClient(unittest.TestCase):
         api = CurrentsAPI("key")
         with self.assertRaises(ValueError):
             api.search(start_date="2026-13-45")
+
+    @patch("currentsapi.client.requests.get")
+    def test_non_json_502_raises_currents_api_error(self, mock_get):
+        mock_get.return_value = Mock(status_code=502)
+        mock_get.return_value.json.side_effect = ValueError("Expecting value")
+        api = CurrentsAPI("key")
+        with self.assertRaises(CurrentsAPIError) as ctx:
+            api.latest_news()
+        self.assertEqual(ctx.exception.status, 502)
+
+    @patch("currentsapi.client.requests.get")
+    def test_non_object_error_payload_raises_currents_api_error(self, mock_get):
+        mock_get.return_value = Mock(status_code=401)
+        mock_get.return_value.json.return_value = []
+        api = CurrentsAPI("key")
+        with self.assertRaises(CurrentsAPIError) as ctx:
+            api.latest_news()
+        self.assertEqual(ctx.exception.status, 401)
+        self.assertIn("non-object", ctx.exception.message)
+
+    def test_falsey_keywords_rejected(self):
+        api = CurrentsAPI("key")
+        with self.assertRaises(ValueError):
+            api.search(keywords=0)
+        with self.assertRaises(ValueError):
+            api.search(keywords="   ")
+
+    def test_naive_datetime_rejected(self):
+        api = CurrentsAPI("key")
+        with self.assertRaises(ValueError):
+            api.search(start_date=datetime.datetime(2024, 6, 1, 12, 0))
+
+    def test_date_object_becomes_utc_midnight(self):
+        mock_response = Mock(status_code=200, json=Mock(return_value={"status": "ok"}))
+        with patch("currentsapi.client.requests.get", return_value=mock_response) as mock_get:
+            api = CurrentsAPI("key")
+            api.search(start_date=datetime.date(2024, 6, 1))
+        kwargs = mock_get.call_args.kwargs
+        self.assertEqual(kwargs["params"]["start_date"], "2024-06-01T00:00:00Z")
+
+    def test_status_prefers_http_code_over_payload(self):
+        exc = CurrentsAPIError({"status": "error"}, http_status=401)
+        self.assertEqual(exc.status, 401)
+        exc2 = CurrentsAPIError({"status": "404"})
+        self.assertEqual(exc2.status, 404)
+        exc3 = CurrentsAPIError({"status": "error"})
+        self.assertEqual(exc3.status, "error")
+
+    def test_exception_accepts_non_dict_payload(self):
+        exc = CurrentsAPIError(["unexpected"])
+        self.assertIsNone(exc.code)
+        self.assertEqual(str(exc), "Unknown API error")
 
 if __name__ == "__main__":
     unittest.main()

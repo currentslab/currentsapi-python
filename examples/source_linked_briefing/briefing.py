@@ -4,8 +4,14 @@
 import argparse
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _example_utils import escape_markdown_text, safe_markdown_url
+
+sys.path.pop(0)
 
 
 def parse_args():
@@ -100,17 +106,17 @@ def resolve_generated_at(args, response):
 def build_output(response, generated_at):
     validate_response(response)
     articles = [normalize_article(article) for article in response["news"]]
-    articles.sort(key=lambda article: article["title"].casefold())
+    articles.sort(key=lambda article: escape_markdown_text(article["title"]).casefold())
     articles.sort(key=lambda article: article["published"], reverse=True)
-    lines = ["# Source-Linked News Briefing", "", "Generated at: {}".format(generated_at), ""]
+    lines = ["# Source-Linked News Briefing", "", "Generated at: {}".format(escape_markdown_text(generated_at)), ""]
     for article in articles:
-        title = article["title"]
-        url = article["url"]
+        title = escape_markdown_text(article["title"])
+        url = safe_markdown_url(article["url"])
         lines.append("- {} - <{}>".format(title, url) if url else "- {}".format(title))
         if article["published"]:
-            lines.append("  - Published: {}".format(article["published"]))
+            lines.append("  - Published: {}".format(escape_markdown_text(article["published"])))
         if article["description"]:
-            lines.append("  - {}".format(article["description"]))
+            lines.append("  - {}".format(escape_markdown_text(article["description"])))
     return "\n".join(lines) + "\n", {
         "generated_at": generated_at,
         "articles": articles,
