@@ -154,6 +154,25 @@ def test_date_boundaries_are_inclusive_and_outside_articles_are_removed():
     }
 
 
+@pytest.mark.parametrize(
+    "value",
+    ["2026-09-30 05:04:18 +0000", "2026-09-30 13:04:18 +0800", "2026-09-30T05:04:18Z"],
+)
+def test_parse_timestamp_accepts_live_api_published_format(value):
+    module = load_example_module()
+
+    parsed = module.parse_timestamp(value, "published")
+
+    assert parsed == datetime(2026, 9, 30, 5, 4, 18, tzinfo=timezone.utc)
+
+
+def test_parse_timestamp_still_rejects_values_without_timezone():
+    module = load_example_module()
+
+    with pytest.raises(ValueError):
+        module.parse_timestamp("2026-09-30 05:04:18", "published")
+
+
 def test_same_url_with_optional_id_drift_is_reported_once():
     module = load_example_module()
     start = datetime(2026, 8, 4, tzinfo=timezone.utc)

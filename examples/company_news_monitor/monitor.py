@@ -56,13 +56,20 @@ def parse_args():
     return parser.parse_args()
 
 
+# The live API sends `published` as "2026-09-30 05:04:18 +0000".
+API_TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S %z"
+
+
 def parse_timestamp(value, label):
     if not isinstance(value, str) or not value:
         raise ValueError("{} must be a non-empty RFC 3339 timestamp".format(label))
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise ValueError("{} must be an RFC 3339 timestamp".format(label)) from exc
+    except ValueError:
+        try:
+            parsed = datetime.strptime(value, API_TIMESTAMP_FORMAT)
+        except ValueError as exc:
+            raise ValueError("{} must be an RFC 3339 timestamp".format(label)) from exc
     if parsed.tzinfo is None:
         raise ValueError("{} must include a timezone".format(label))
     return parsed.astimezone(timezone.utc)
